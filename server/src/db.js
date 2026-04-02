@@ -83,7 +83,7 @@ function getPool() {
  * Basic query export (shortcut)
  */
 async function query(text, params) {
-	return queryWrapper(getPool(), text, params);
+	return getPool().query(text, params);
 }
 
 async function connectDb() {
