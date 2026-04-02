@@ -12,8 +12,20 @@
   ],
   "rewrites": [
     {
-      "source": "/api/(.*)",
-      "destination": "/server/$1"
+      "source": "/api/auth/(register|register-otp|verify-email|login|login-email-phone|checkout-guest|logout|login-otp|me|request-otp|verify-otp|course-register|check-phone|request-phone-change|verify-phone-change|confirm-phone-change|line)/(.*)",
+      "destination": "/server/index.js"
+    },
+    {
+      "source": "/api/auth/(register|register-otp|verify-email|login|login-email-phone|checkout-guest|logout|login-otp|me|request-otp|verify-otp|course-register|check-phone|request-phone-change|verify-phone-change|confirm-phone-change|line)",
+      "destination": "/server/index.js"
+    },
+    {
+      "source": "/api/(courses|imports|admin|user|shop|shipping)/(.*)",
+      "destination": "/server/index.js"
+    },
+    {
+      "source": "/api/(courses|imports|admin|user|shop|shipping)",
+      "destination": "/server/index.js"
     },
     {
       "source": "/(.*)",
