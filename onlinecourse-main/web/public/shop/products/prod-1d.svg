@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="900" viewBox="0 0 900 900" fill="none">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="900" y2="900" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FCE7F3"/>
+      <stop offset="1" stop-color="#FBCFE8"/>
+    </linearGradient>
+  </defs>
+  <rect width="900" height="900" rx="60" fill="url(#g)"/>
+  <rect x="160" y="190" width="580" height="520" rx="48" fill="#FFFFFF" opacity="0.9"/>
+  <circle cx="310" cy="420" r="110" fill="#EC4899" opacity="0.9"/>
+  <rect x="470" y="360" width="210" height="36" rx="18" fill="#E2E8F0"/>
+  <rect x="470" y="420" width="180" height="36" rx="18" fill="#E2E8F0"/>
+  <rect x="470" y="480" width="140" height="36" rx="18" fill="#E2E8F0"/>
+  <text x="140" y="120" font-family="ui-sans-serif, system-ui" font-size="46" font-weight="800" fill="#831843">Soft Touch</text>
+</svg>

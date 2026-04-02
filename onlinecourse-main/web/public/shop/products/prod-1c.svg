@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="900" viewBox="0 0 900 900" fill="none">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="900" y2="900" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#DCFCE7"/>
+      <stop offset="1" stop-color="#BBF7D0"/>
+    </linearGradient>
+  </defs>
+  <rect width="900" height="900" rx="60" fill="url(#g)"/>
+  <circle cx="650" cy="260" r="140" fill="#86EFAC"/>
+  <rect x="140" y="360" width="620" height="320" rx="44" fill="#FFFFFF" opacity="0.9"/>
+  <rect x="200" y="420" width="280" height="34" rx="17" fill="#E2E8F0"/>
+  <rect x="200" y="480" width="320" height="34" rx="17" fill="#E2E8F0"/>
+  <rect x="200" y="540" width="220" height="34" rx="17" fill="#E2E8F0"/>
+  <text x="140" y="120" font-family="ui-sans-serif, system-ui" font-size="46" font-weight="800" fill="#065F46">Fresh Living</text>
+</svg>

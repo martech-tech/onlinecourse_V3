@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="900" viewBox="0 0 900 900" fill="none">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="900" y2="900" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FEF3C7"/>
+      <stop offset="1" stop-color="#FDE68A"/>
+    </linearGradient>
+  </defs>
+  <rect width="900" height="900" rx="60" fill="url(#g)"/>
+  <circle cx="250" cy="320" r="120" fill="#F59E0B" opacity="0.9"/>
+  <rect x="420" y="250" width="300" height="40" rx="20" fill="#FFFFFF" opacity="0.95"/>
+  <rect x="420" y="320" width="260" height="40" rx="20" fill="#FFFFFF" opacity="0.95"/>
+  <rect x="420" y="390" width="200" height="40" rx="20" fill="#FFFFFF" opacity="0.95"/>
+  <rect x="200" y="520" width="320" height="70" rx="24" fill="#F97316"/>
+  <text x="140" y="120" font-family="ui-sans-serif, system-ui" font-size="46" font-weight="800" fill="#92400E">Bundle Pack</text>
+</svg>

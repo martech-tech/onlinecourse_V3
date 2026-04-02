@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="500" viewBox="0 0 1500 500" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1500" y2="500" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFE4E6"/>
+      <stop offset="1" stop-color="#FFF7ED"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#EF4444"/>
+      <stop offset="1" stop-color="#F97316"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1500" height="500" rx="40" fill="url(#bg)"/>
+  <path d="M0 360C180 320 260 430 460 390C660 350 760 250 980 290C1200 330 1320 250 1500 220V500H0V360Z" fill="#FB7185" opacity="0.25"/>
+  <path d="M0 400C200 370 280 470 490 430C700 390 820 290 1040 330C1260 370 1360 310 1500 280V500H0V400Z" fill="#FDBA74" opacity="0.25"/>
+
+  <g>
+    <text x="110" y="185" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI" font-size="54" font-weight="800" fill="#0F172A">Hot Deals</text>
+    <text x="110" y="240" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI" font-size="28" font-weight="600" fill="#334155">Flash sale · Extra vouchers</text>
+    <rect x="110" y="280" width="210" height="58" rx="18" fill="url(#accent)"/>
+    <text x="150" y="318" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI" font-size="20" font-weight="800" fill="#FFFFFF">Claim now</text>
+  </g>
+
+  <g opacity="0.9">
+    <rect x="980" y="120" width="360" height="240" rx="26" fill="#FFFFFF"/>
+    <circle cx="1060" cy="200" r="56" fill="#E2E8F0"/>
+    <rect x="1140" y="170" width="160" height="18" rx="9" fill="#E2E8F0"/>
+    <rect x="1140" y="202" width="210" height="18" rx="9" fill="#E2E8F0"/>
+    <rect x="1140" y="234" width="120" height="18" rx="9" fill="#E2E8F0"/>
+  </g>
+</svg>
