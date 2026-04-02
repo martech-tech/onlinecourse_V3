@@ -5,22 +5,60 @@ let pool;
 
 /**
  * Helper to convert MySQL-style queries to PG-style ($1, $2, etc.)
- * and return a MySQL-compatible result [rows, result].
+ * and return a MySQL2-compatible result:
+ *   - SELECT → [rows, []]  (rows is array of objects)
+ *   - INSERT/UPDATE/DELETE/DDL → [OkPacket, []]  (OkPacket has insertId, affectedRows)
  */
 async function queryWrapper(executor, text, params) {
 	let pgText = text;
 	let pgParams = params || [];
 
-	// 1. Convert ? placeholders to $1, $2, etc.
-	if (pgParams.length > 0) {
-		let index = 1;
-		pgText = text.replace(/\?/g, () => `$${index++}`);
+	// ── MySQL → PostgreSQL syntax translations ──────────────────────────────
+
+	// 1. NOW(n) → NOW()  (MySQL fractional-seconds arg not supported in PG)
+	pgText = pgText.replace(/NOW\(\d+\)/gi, 'NOW()');
+
+	// 2. DATE_ADD(NOW(), INTERVAL ? MINUTE/SECOND) → PG interval arithmetic
+	pgText = pgText.replace(
+		/DATE_ADD\s*\(\s*NOW\s*\(\s*\)\s*,\s*INTERVAL\s+\?\s+MINUTE\s*\)/gi,
+		"(NOW() + (? * INTERVAL '1 minute'))"
+	);
+	pgText = pgText.replace(
+		/DATE_ADD\s*\(\s*NOW\s*\(\s*\)\s*,\s*INTERVAL\s+\?\s+SECOND\s*\)/gi,
+		"(NOW() + (? * INTERVAL '1 second'))"
+	);
+
+	// 3. COLLATE <charset>  (MySQL charset collation — not applicable in PG)
+	pgText = pgText.replace(/\bCOLLATE\s+\S+/gi, '');
+
+	// 4. INSERT IGNORE → INSERT  (conflict handling appended below)
+	const isInsertIgnore = /^\s*INSERT\s+IGNORE\b/i.test(pgText);
+	if (isInsertIgnore) {
+		pgText = pgText.replace(/^\s*INSERT\s+IGNORE\b/i, 'INSERT');
 	}
 
-	// 2. Automatically handle INSERT RETURNING id for MySQL's insertId compatibility
+	// 5. ON DUPLICATE KEY UPDATE … → ON CONFLICT DO NOTHING
+	pgText = pgText.replace(/\bON\s+DUPLICATE\s+KEY\s+UPDATE\b[\s\S]*/gi, 'ON CONFLICT DO NOTHING');
+
+	// ───────────────────────────────────────────────────────────────────────
+
+	// 6. Convert ? placeholders to $1, $2, …
+	if (pgParams.length > 0) {
+		let index = 1;
+		pgText = pgText.replace(/\?/g, () => `$${index++}`);
+	}
+
+	// 7. For INSERT statements append RETURNING * (gives MySQL-compatible insertId)
+	//    For INSERT IGNORE also prepend ON CONFLICT DO NOTHING if not already present
 	const isInsert = /^\s*INSERT\s+/i.test(pgText);
 	if (isInsert && !/RETURNING\s+/i.test(pgText)) {
-		pgText += ' RETURNING id';
+		const hasConflict = /\bON\s+CONFLICT\b/i.test(pgText);
+		let suffix = '';
+		if (isInsertIgnore && !hasConflict) {
+			suffix += ' ON CONFLICT DO NOTHING';
+		}
+		suffix += ' RETURNING *';
+		pgText = pgText.trimEnd() + suffix;
 	}
 
 	const start = Date.now();
@@ -32,15 +70,21 @@ async function queryWrapper(executor, text, params) {
 		console.log('executed query', { pgText, duration, rows: res.rowCount });
 	}
 
-	// 3. Format result like MySQL [rows, result]
-	const rows = res.rows;
-	const result = {
-		...res,
+	// 8. Return MySQL2-compatible format:
+	//    SELECT  → [rows[], []]
+	//    DML/DDL → [OkPacket, []]  where OkPacket mirrors mysql2's OkPacket shape
+	const isSelect = /^\s*SELECT\b/i.test(pgText);
+	if (isSelect) {
+		return [res.rows, []];
+	}
+
+	const okPacket = {
 		insertId: isInsert && res.rows[0]?.id ? Number(res.rows[0].id) : null,
 		affectedRows: res.rowCount,
+		changedRows: res.rowCount,
+		fieldCount: 0,
 	};
-
-	return [rows, result];
+	return [okPacket, []];
 }
 
 /**
@@ -135,6 +179,7 @@ async function initSchema() {
 			verification_token_hash VARCHAR(255) NULL,
 			verification_token_expires_at TIMESTAMPTZ NULL,
 			bio TEXT NULL,
+			email_login_count INT NOT NULL DEFAULT 0,
 			created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 		);
@@ -428,6 +473,12 @@ async function initSchema() {
 			created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 		);
 	`);
+
+	// ── Backfill columns added after initial schema deployment ──────────────
+	await query(`
+		ALTER TABLE users ADD COLUMN IF NOT EXISTS email_login_count INT NOT NULL DEFAULT 0;
+	`);
+	// ────────────────────────────────────────────────────────────────────────
 
 	// Seed admin user from environment variables
 	const seedEmail = process.env.ADMIN_SEED_EMAIL ? String(process.env.ADMIN_SEED_EMAIL).trim().toLowerCase() : '';
