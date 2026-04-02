@@ -5,7 +5,20 @@ type AdminMeResponse = { admin: { id: string; email?: string; role: 'admin' } };
 function apiBase() {
 	const base = process.env.NEXT_PUBLIC_API_BASE_URL;
 	if (!base) throw new Error('ไม่พบ NEXT_PUBLIC_API_BASE_URL');
-	return base.replace(/\/$/, '');
+	let returnBase = base.replace(/\/$/, '');
+
+	// Next.js Server Side fetch requires an absolute URL.
+	if (typeof window === 'undefined' && returnBase.startsWith('/')) {
+		if (process.env.VERCEL_URL) {
+			returnBase = `https://${process.env.VERCEL_URL}${returnBase}`;
+		} else if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+			returnBase = `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}${returnBase}`;
+		} else {
+			returnBase = `http://localhost:${process.env.PORT || 3000}${returnBase}`;
+		}
+	}
+
+	return returnBase;
 }
 
 export async function getAdminMeServer(cookieHeader: string): Promise<AdminMeResponse['admin'] | null> {
