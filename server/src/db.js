@@ -499,15 +499,11 @@ async function initSchema() {
 				console.log('Synced admin password from environment variables:', seedEmail);
 			}
 		} else {
-			// No admin with seed email — create one if table is empty
-			const [countRows] = await query('SELECT COUNT(*) AS c FROM admin_users');
-			const existingCount = Number(countRows[0].c);
-			if (existingCount === 0) {
-				const passwordHash = await bcrypt.hash(seedPassword, 12);
-				await query('INSERT INTO admin_users (email, password_hash, is_active) VALUES (?, ?, 1)', [seedEmail, passwordHash]);
-				// eslint-disable-next-line no-console
-				console.log('Seeded admin user from environment variables:', seedEmail);
-			}
+			// No admin with seed email — always create it so env-var credentials always work
+			const passwordHash = await bcrypt.hash(seedPassword, 12);
+			await query('INSERT INTO admin_users (email, password_hash, is_active) VALUES (?, ?, 1)', [seedEmail, passwordHash]);
+			// eslint-disable-next-line no-console
+			console.log('Seeded admin user from environment variables:', seedEmail);
 		}
 	}
 }
