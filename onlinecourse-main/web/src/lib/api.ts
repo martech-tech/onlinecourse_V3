@@ -79,21 +79,7 @@ export type LessonCompletionStatusResponse =
 function apiBase() {
 	const base = process.env.NEXT_PUBLIC_API_BASE_URL;
 	if (!base) throw new Error('ไม่พบ NEXT_PUBLIC_API_BASE_URL');
-	let returnBase = base.replace(/\/$/, '');
-
-	// Next.js Server Side fetch requires an absolute URL.
-	// If the URL is relative (e.g. /api), we prepend the Vercel branch URL or localhost.
-	if (typeof window === 'undefined' && returnBase.startsWith('/')) {
-		if (process.env.VERCEL_URL) {
-			returnBase = `https://${process.env.VERCEL_URL}${returnBase}`;
-		} else if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
-			returnBase = `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}${returnBase}`;
-		} else {
-			returnBase = `http://localhost:${process.env.PORT || 3000}${returnBase}`;
-		}
-	}
-
-	return returnBase;
+	return base.replace(/\/$/, '');
 }
 
 export async function getCourses(cookieHeader?: string): Promise<CourseListItem[]> {
