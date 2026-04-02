@@ -449,50 +449,17 @@ async function initSchema() {
 		`);
 	}
 
-	// Seed admin_users
-	const seedEmail = process.env.ADMIN_SEED_EMAIL ? String(process.env.ADMIN_SEED_EMAIL).trim().toLowerCase() : 'admin@test.com';
-	const seedPassword = process.env.ADMIN_SEED_PASSWORD ? String(process.env.ADMIN_SEED_PASSWORD) : 'password123';
+	// Seed admin user from environment variables
+	const seedEmail = process.env.ADMIN_SEED_EMAIL ? String(process.env.ADMIN_SEED_EMAIL).trim().toLowerCase() : '';
+	const seedPassword = process.env.ADMIN_SEED_PASSWORD ? String(process.env.ADMIN_SEED_PASSWORD) : '';
 	
-	const [adminCountRows] = await db.query('SELECT COUNT(*) AS c FROM admin_users WHERE email = $1', [seedEmail]);
-	if (Number(adminCountRows[0].c) === 0) {
-		const hash = await bcrypt.hash(seedPassword, 12);
-		await db.query('INSERT INTO admin_users (email, password_hash, is_active) VALUES ($1, $2, TRUE)', [seedEmail, hash]);
-		console.log('Seeded admin_users:', seedEmail);
-	}
-
-	// Seed users (Normal User & Admin Role User)
-	const testUserEmail = 'user@test.com';
-	const [userCountRows] = await db.query('SELECT COUNT(*) AS c FROM users WHERE email = $1', [testUserEmail]);
-	if (Number(userCountRows[0].c) === 0) {
-		const hash = await bcrypt.hash('password123', 12);
-		await db.query(
-			`INSERT INTO users (email, password_hash, role, first_name, last_name, phone_number, is_verified) 
-			 VALUES ($1, $2, 'student', 'Test', 'User', '0812345678', TRUE)`,
-			[testUserEmail, hash]
-		);
-		console.log('Seeded users (student):', testUserEmail);
-	}
-
-	const testAdminUserEmail = 'admin_user@test.com';
-	const [adminUserCountRows] = await db.query('SELECT COUNT(*) AS c FROM users WHERE email = $1', [testAdminUserEmail]);
-	if (Number(adminUserCountRows[0].c) === 0) {
-		const hash = await bcrypt.hash('password123', 12);
-		await db.query(
-			`INSERT INTO users (email, password_hash, role, first_name, last_name, phone_number, is_verified) 
-			 VALUES ($1, $2, 'admin', 'Admin', 'Test', '0899999999', TRUE)`,
-			[testAdminUserEmail, hash]
-		);
-		console.log('Seeded users (admin):', testAdminUserEmail);
-	}
-
-	// Seed a sample course if none exists
-	const [courseCountRows] = await db.query('SELECT COUNT(*) AS c FROM courses');
-	if (Number(courseCountRows[0].c) === 0) {
-		await db.query(
-			`INSERT INTO courses (title, slug, description_html, status, visibility_type, pricing_model) 
-			 VALUES ('คอร์สทดสอบระบบ (Test Course)', 'test-course', '<p>นี่คือคอร์สทดสอบเบื้องต้นสำหรับระบบใหม่</p>', 'published', 'public', 'free')`
-		);
-		console.log('Seeded sample course');
+	if (seedEmail && seedPassword && seedPassword.length >= 8) {
+		const [countRows] = await db.query('SELECT COUNT(*) AS c FROM admin_users WHERE email = $1', [seedEmail]);
+		if (Number(countRows[0].c) === 0) {
+			const passwordHash = await bcrypt.hash(seedPassword, 12);
+			await db.query('INSERT INTO admin_users (email, password_hash, is_active) VALUES ($1, $2, TRUE)', [seedEmail, passwordHash]);
+			console.log('Seeded admin user from environment variables:', seedEmail);
+		}
 	}
 }
 
