@@ -3,6 +3,75 @@ const bcrypt = require('bcryptjs');
 
 let pool;
 
+/**
+ * Helper to convert MySQL-style queries to PG-style ($1, $2, etc.)
+ * and return a MySQL-compatible result [rows, result].
+ */
+async function queryWrapper(executor, text, params) {
+	let pgText = text;
+	let pgParams = params || [];
+
+	// 1. Convert ? placeholders to $1, $2, etc.
+	if (pgParams.length > 0) {
+		let index = 1;
+		pgText = text.replace(/\?/g, () => `$${index++}`);
+	}
+
+	// 2. Automatically handle INSERT RETURNING id for MySQL's insertId compatibility
+	const isInsert = /^\s*INSERT\s+/i.test(pgText);
+	if (isInsert && !/RETURNING\s+/i.test(pgText)) {
+		pgText += ' RETURNING id';
+	}
+
+	const start = Date.now();
+	const res = await executor.query(pgText, pgParams);
+	const duration = Date.now() - start;
+
+	// eslint-disable-next-line no-console
+	if (process.env.DEBUG_DB) {
+		console.log('executed query', { pgText, duration, rows: res.rowCount });
+	}
+
+	// 3. Format result like MySQL [rows, result]
+	const rows = res.rows;
+	const result = {
+		...res,
+		insertId: isInsert && res.rows[0]?.id ? Number(res.rows[0].id) : null,
+		affectedRows: res.rowCount,
+	};
+
+	return [rows, result];
+}
+
+/**
+ * Wrap a single PG Client to emulate a MySQL Connection
+ */
+function wrapClient(client) {
+	return {
+		query: (text, params) => queryWrapper(client, text, params),
+		beginTransaction: () => client.query('BEGIN'),
+		commit: () => client.query('COMMIT'),
+		rollback: () => client.query('ROLLBACK'),
+		release: () => client.release(),
+		// Legacy names
+		ping: () => client.query('SELECT 1'),
+	};
+}
+
+/**
+ * Wrap the PG Pool to emulate a MySQL Pool
+ */
+function wrapPool(p) {
+	return {
+		query: (text, params) => queryWrapper(p, text, params),
+		getConnection: async () => {
+			const client = await p.connect();
+			return wrapClient(client);
+		},
+		end: () => p.end(),
+	};
+}
+
 function getPool() {
 	if (!pool) {
 		throw new Error('DB pool not initialized. Call connectDb() first.');
@@ -10,19 +79,11 @@ function getPool() {
 	return pool;
 }
 
-// Helper to convert MySQL-style queries to PG-style ($1, $2, etc.)
+/**
+ * Basic query export (shortcut)
+ */
 async function query(text, params) {
-	let pgText = text;
-	if (params && params.length > 0) {
-		let index = 1;
-		pgText = text.replace(/\?/g, () => `$${index++}`);
-	}
-	const start = Date.now();
-	const res = await getPool().query(pgText, params);
-	const duration = Date.now() - start;
-	// eslint-disable-next-line no-console
-	if (process.env.DEBUG_DB) console.log('executed query', { pgText, duration, rows: res.rowCount });
-	return [res.rows, res];
+	return queryWrapper(getPool(), text, params);
 }
 
 async function connectDb() {
@@ -32,7 +93,7 @@ async function connectDb() {
 		throw new Error('Missing DATABASE_URL env var');
 	}
 
-	pool = new Pool({
+	const rawPool = new Pool({
 		connectionString,
 		ssl: {
 			rejectUnauthorized: false,
@@ -40,21 +101,24 @@ async function connectDb() {
 	});
 
 	// Smoke test connection
-	const client = await pool.connect();
+	const client = await rawPool.connect();
 	try {
 		await client.query('SELECT NOW()');
 	} finally {
 		client.release();
 	}
 
+	// Wrap the pool for MySQL compatibility
+	pool = wrapPool(rawPool);
+
 	await initSchema();
 
 	// eslint-disable-next-line no-console
-	console.log('Connected to PostgreSQL (Supabase)');
+	console.log('Connected to PostgreSQL (Supabase) via Compatibility Layer');
 }
 
 async function initSchema() {
-	// New-install schema bootstrap for PostgreSQL
+	// Standard schema initialization (using the new query wrapper)
 	await query(`
 		CREATE TABLE IF NOT EXISTS users (
 			id BIGSERIAL PRIMARY KEY,
