@@ -17,7 +17,21 @@ type LoginResponse = {
 function apiBase() {
 	const base = process.env.NEXT_PUBLIC_API_BASE_URL;
 	if (!base) throw new Error('ไม่พบ NEXT_PUBLIC_API_BASE_URL');
-	return base.replace(/\/$/, '');
+	let returnBase = base.replace(/\/$/, '');
+
+	// NextAuth runs on the server – relative URLs won't work.
+	// Prepend the Vercel host automatically.
+	if (returnBase.startsWith('/')) {
+		if (process.env.VERCEL_URL) {
+			returnBase = `https://${process.env.VERCEL_URL}${returnBase}`;
+		} else if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+			returnBase = `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}${returnBase}`;
+		} else {
+			returnBase = `http://localhost:${process.env.PORT || 3000}${returnBase}`;
+		}
+	}
+
+	return returnBase;
 }
 
 function getCookieHeader(req: unknown): string {

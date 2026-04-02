@@ -76,13 +76,31 @@ app.get('/health', async (_req, res) => {
 	}
 });
 
-app.use('/courses', coursesRouter);
-app.use('/imports', importsRouter);
-app.use('/auth', authRouter);
-app.use('/admin', adminRouter);
-app.use('/user', userRouter);
-app.use('/shop', shopRouter);
-app.use('/shipping', shippingRouter);
+app.use(async (req, res, next) => {
+	try {
+		const { getPool, connectDb } = require('./src/db');
+		try {
+			getPool();
+		} catch (e) {
+			await connectDb();
+		}
+		next();
+	} catch (err) {
+		next(err);
+	}
+});
+
+const apiRoutes = express.Router();
+apiRoutes.use('/courses', coursesRouter);
+apiRoutes.use('/imports', importsRouter);
+apiRoutes.use('/auth', authRouter);
+apiRoutes.use('/admin', adminRouter);
+apiRoutes.use('/user', userRouter);
+apiRoutes.use('/shop', shopRouter);
+apiRoutes.use('/shipping', shippingRouter);
+
+app.use('/api', apiRoutes);
+app.use('/', apiRoutes);
 
 // ---------------------------------------------------------------------------
 // 404 catch-all & Express error handler
@@ -100,30 +118,33 @@ app.use((err, _req, res, _next) => {
 
 const port = Number(process.env.PORT || 4000);
 
-connectDb()
-	.then(() => {
-		const server = app.listen(port, () => {
-			// eslint-disable-next-line no-console
-			console.log(`API listening on http://localhost:${port}`);
-		});
-
-		// Graceful shutdown – let in-flight requests finish before exiting
-		function shutdown(signal) {
-			// eslint-disable-next-line no-console
-			console.log(`${signal} received – closing server`);
-			server.close(() => {
+if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+	connectDb()
+		.then(() => {
+			const server = app.listen(port, () => {
 				// eslint-disable-next-line no-console
-				console.log('Server closed');
-				process.exit(0);
+				console.log(`API listening on http://localhost:${port}`);
 			});
-			// Force-exit after 10 s if connections won't drain
-			setTimeout(() => process.exit(1), 10_000).unref();
-		}
-		process.on('SIGTERM', () => shutdown('SIGTERM'));
-		process.on('SIGINT', () => shutdown('SIGINT'));
-	})
-	.catch((err) => {
-		// eslint-disable-next-line no-console
-		console.error('Failed to start API:', err);
-		process.exit(1);
-	});
+
+			// Graceful shutdown – let in-flight requests finish before exiting
+			function shutdown(signal) {
+				// eslint-disable-next-line no-console
+				console.log(`${signal} received – closing server`);
+				server.close(() => {
+					// eslint-disable-next-line no-console
+					console.log('Server closed');
+					process.exit(0);
+				});
+				setTimeout(() => process.exit(1), 10_000).unref();
+			}
+			process.on('SIGTERM', () => shutdown('SIGTERM'));
+			process.on('SIGINT', () => shutdown('SIGINT'));
+		})
+		.catch((err) => {
+			// eslint-disable-next-line no-console
+			console.error('Failed to start API:', err);
+			process.exit(1);
+		});
+}
+
+module.exports = app;

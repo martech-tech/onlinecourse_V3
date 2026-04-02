@@ -101,7 +101,10 @@ function extensionFromImageMime(mime) {
 	return '';
 }
 
-const uploadsRootDir = path.join(__dirname, '..', '..', 'uploads');
+const uploadsRootDir = process.env.VERCEL 
+	? path.join('/tmp', 'uploads')
+	: path.join(__dirname, '..', '..', 'uploads');
+
 const courseThumbsDir = path.join(uploadsRootDir, 'course-thumbnails');
 if (!fs.existsSync(courseThumbsDir)) {
 	fs.mkdirSync(courseThumbsDir, { recursive: true });

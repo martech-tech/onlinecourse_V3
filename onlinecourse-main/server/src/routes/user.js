@@ -9,7 +9,10 @@ const { getPool } = require('../db');
 
 const router = express.Router();
 
-const uploadsDir = path.join(__dirname, '..', '..', 'uploads');
+const uploadsDir = process.env.VERCEL 
+	? path.join('/tmp', 'uploads')
+	: path.join(__dirname, '..', '..', 'uploads');
+
 if (!fs.existsSync(uploadsDir)) {
 	fs.mkdirSync(uploadsDir, { recursive: true });
 }
