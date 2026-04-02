@@ -480,17 +480,34 @@ async function initSchema() {
 	`);
 	// ────────────────────────────────────────────────────────────────────────
 
-	// Seed admin user from environment variables
+	// Seed / sync admin user from environment variables.
+	// - If ADMIN_SEED_EMAIL matches an existing admin → password is synced to ADMIN_SEED_PASSWORD
+	//   (allows password reset by updating Vercel env vars and redeploying).
+	// - If no admin exists at all → create one.
 	const seedEmail = process.env.ADMIN_SEED_EMAIL ? String(process.env.ADMIN_SEED_EMAIL).trim().toLowerCase() : '';
 	const seedPassword = process.env.ADMIN_SEED_PASSWORD ? String(process.env.ADMIN_SEED_PASSWORD) : '';
 	if (seedEmail && seedPassword && seedPassword.length >= 8) {
-		const [adminRows] = await query('SELECT COUNT(*) AS c FROM admin_users');
-		const existingCount = Number(adminRows[0].c);
-		if (existingCount === 0) {
-			const passwordHash = await bcrypt.hash(seedPassword, 12);
-			await query('INSERT INTO admin_users (email, password_hash, is_active) VALUES (?, ?, 1)', [seedEmail, passwordHash]);
-			// eslint-disable-next-line no-console
-			console.log('Seeded admin user from environment variables:', seedEmail);
+		const [existingRows] = await query('SELECT id, password_hash FROM admin_users WHERE email = ?', [seedEmail]);
+		if (Array.isArray(existingRows) && existingRows.length > 0) {
+			// Admin with seed email exists — sync password if it has changed
+			const existingHash = String(existingRows[0].password_hash || '');
+			const alreadyMatches = existingHash ? await bcrypt.compare(seedPassword, existingHash) : false;
+			if (!alreadyMatches) {
+				const passwordHash = await bcrypt.hash(seedPassword, 12);
+				await query('UPDATE admin_users SET password_hash = ?, is_active = 1 WHERE email = ?', [passwordHash, seedEmail]);
+				// eslint-disable-next-line no-console
+				console.log('Synced admin password from environment variables:', seedEmail);
+			}
+		} else {
+			// No admin with seed email — create one if table is empty
+			const [countRows] = await query('SELECT COUNT(*) AS c FROM admin_users');
+			const existingCount = Number(countRows[0].c);
+			if (existingCount === 0) {
+				const passwordHash = await bcrypt.hash(seedPassword, 12);
+				await query('INSERT INTO admin_users (email, password_hash, is_active) VALUES (?, ?, 1)', [seedEmail, passwordHash]);
+				// eslint-disable-next-line no-console
+				console.log('Seeded admin user from environment variables:', seedEmail);
+			}
 		}
 	}
 }

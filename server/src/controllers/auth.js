@@ -458,7 +458,10 @@ async function login(req, res) {
 			return res.status(401).json({ error: 'invalid credentials' });
 		}
 
-		if (!row.is_verified) {
+		// Skip email-verification gate when REQUIRE_EMAIL_VERIFICATION=false
+		// (useful when migrating existing users who were not email-verified in the old system)
+		const requireVerification = process.env.REQUIRE_EMAIL_VERIFICATION !== 'false';
+		if (requireVerification && !row.is_verified) {
 			return res.status(403).json({ error: 'email not verified' });
 		}
 
